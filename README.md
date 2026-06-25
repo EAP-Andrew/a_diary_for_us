@@ -16,6 +16,7 @@ Static frontend (HTML / CSS / Vanilla JS) hosted on **GitHub Pages**, with a
 - Required username, stored locally (no login)
 - Replies to entries — a conversation across time
 - Image upload (click **or** drag & drop), automatically resized
+- 🎵 **Music of the day** — paste a Spotify link and everyone can play it on the page
 - Entry of the day highlighted + chronological scroll
 - Persistent real‑time storage (Firestore `onSnapshot`)
 - Pastel dark mode · search by date · "today" indicator · 💾 draft auto‑save
@@ -53,6 +54,23 @@ Collection **`entries`**, one document per entry:
   "createdAt": "<serverTimestamp>"
 }
 ```
+
+Collection **`songs`**, one document per shared "music of the day":
+
+```json
+{
+  "date": "2026-06-25",
+  "username": "Lou",
+  "clientId": "local-uuid",
+  "spotifyType": "track",
+  "spotifyId": "4PTG3Z6ehGkBFwjybzWkR8",
+  "createdAt": "<serverTimestamp>"
+}
+```
+
+Songs are rendered with Spotify's official embed player (an `<iframe>`), so they
+play directly on the page — no Spotify API key or login required. Paste any link
+from Spotify's **Share → Copy link** (track, album, playlist or episode).
 
 ---
 
@@ -92,6 +110,13 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.resource.data.username is string
                     && request.resource.data.date is string;
+      allow update, delete: if true;
+    }
+    match /songs/{song} {
+      allow read: if true;
+      allow create: if request.resource.data.username is string
+                    && request.resource.data.date is string
+                    && request.resource.data.spotifyId is string;
       allow update, delete: if true;
     }
   }

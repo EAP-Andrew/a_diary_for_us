@@ -67,6 +67,20 @@
           <span id="today-badge" class="today-badge hidden">today</span>
         </div>
 
+        <!-- Music of the day -->
+        <section class="music-pane">
+          <div class="music-header">
+            <span class="music-title">🎵 music of the day</span>
+          </div>
+          <form id="music-form" class="music-form" autocomplete="off">
+            <input id="music-input" type="text" class="music-input"
+                   placeholder="paste a Spotify link (track, album or playlist)…" />
+            <button type="submit" class="btn btn-primary">share</button>
+          </form>
+          <p id="music-hint" class="music-hint"></p>
+          <div id="songs" class="songs"></div>
+        </section>
+
         <!-- Composer -->
         <form id="composer" class="composer" autocomplete="off">
           <textarea id="entry-text" placeholder="Write something for this day…" rows="3"></textarea>

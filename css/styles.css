@@ -259,6 +259,42 @@ button { font-family: inherit; cursor: pointer; }
   padding: 0.15rem 0.6rem; border-radius: 999px;
 }
 
+/* Music of the day */
+.music-pane {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 1rem; box-shadow: var(--shadow); margin-bottom: 1.4rem;
+}
+.music-header { display: flex; align-items: center; margin-bottom: 0.7rem; }
+.music-title {
+  font-family: "Playfair Display", Georgia, serif; font-style: italic;
+  font-weight: 700; font-size: 1.15rem; color: var(--accent-deep);
+  text-transform: lowercase;
+}
+.music-form { display: flex; gap: 0.5rem; }
+.music-input {
+  flex: 1; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 0.7rem 0.8rem; font-family: inherit; font-size: 0.95rem;
+  background: var(--surface-2); color: var(--ink); min-width: 0;
+}
+.music-input:focus { outline: 2px solid var(--accent); }
+.music-hint { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--ink-soft); min-height: 1em; }
+.music-hint.error { color: var(--rose-deep); }
+
+.songs { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 0.9rem; }
+.song { animation: fadeIn 0.35s ease; }
+.song-head {
+  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;
+}
+.song-head .avatar { width: 26px; height: 26px; font-size: 0.72rem; }
+.song-author { font-weight: 700; font-size: 0.85rem; }
+.song-time { font-size: 0.72rem; color: var(--ink-soft); }
+.song-delete {
+  margin-left: auto; background: none; border: none; color: var(--ink-soft);
+  font-weight: 600; font-size: 0.8rem; padding: 0;
+}
+.song-delete:hover { color: var(--accent-deep); }
+.song iframe { display: block; border: none; border-radius: 12px; width: 100%; }
+
 /* Composer */
 .composer {
   background: var(--surface); border-radius: var(--radius);

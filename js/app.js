@@ -36,6 +36,7 @@ if (!configured) {
 // ---------- Small helpers ----------
 const $ = (sel) => document.querySelector(sel);
 const ENTRIES = "entries";
+const SONGS = "songs";
 
 function pad(n) { return String(n).padStart(2, "0"); }
 function isoDate(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
@@ -88,6 +89,7 @@ let calMonth = new Date();                 // month shown in calendar
 let pendingImageData = null;               // dataURL of staged image
 let unsubDay = null;                       // firestore listener for the day
 let unsubMonth = null;                     // listener for month dots
+let unsubSongs = null;                     // listener for the day's shared songs
 
 // ===========================================================
 //  Username gate
@@ -203,6 +205,7 @@ function selectDate(date) {
   renderCalendar();
   watchMonth();
   watchDay();
+  watchSongs();
   loadDraft();
   // gentle animation
   const pane = $(".journal-pane");
@@ -374,6 +377,105 @@ async function deleteEntry(id) {
 }
 
 $("#composer").addEventListener("submit", submitEntry);
+
+// ===========================================================
+//  Music of the day — share a Spotify track for the selected day
+// ===========================================================
+// Accepts: open.spotify.com/track/ID, /album/ID, /playlist/ID, /episode/ID,
+// localized links (/intl-fr/track/ID), and spotify:track:ID URIs.
+function parseSpotify(url) {
+  if (!url) return null;
+  const s = url.trim();
+  let m = s.match(/spotify:(track|album|playlist|episode|show|artist):([A-Za-z0-9]+)/i);
+  if (m) return { type: m[1].toLowerCase(), id: m[2] };
+  m = s.match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/i);
+  if (m) return { type: m[1].toLowerCase(), id: m[2] };
+  return null;
+}
+
+function embedHeight(type) {
+  // Compact player for single items, taller player for collections.
+  return (type === "track" || type === "episode") ? 152 : 352;
+}
+
+function setMusicHint(msg, isError) {
+  const hint = $("#music-hint");
+  hint.textContent = msg || "";
+  hint.classList.toggle("error", !!isError);
+}
+
+function watchSongs() {
+  if (!configured) { renderSongs([]); return; }
+  if (unsubSongs) unsubSongs();
+  const dayIso = isoDate(selectedDate);
+  const q = query(collection(db, SONGS), where("date", "==", dayIso));
+  unsubSongs = onSnapshot(q, (snap) => {
+    const items = [];
+    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+    items.sort((a, b) => (toDate(a.createdAt)?.getTime() || 0) - (toDate(b.createdAt)?.getTime() || 0));
+    renderSongs(items);
+  }, (err) => console.error("songs listener", err));
+}
+
+function renderSongs(items) {
+  const container = $("#songs");
+  if (!items.length) { container.innerHTML = ""; return; }
+  container.innerHTML = items.map(songHtml).join("");
+  container.querySelectorAll(".song-delete").forEach((btn) =>
+    btn.addEventListener("click", () => deleteSong(btn.dataset.id)));
+}
+
+function songHtml(it) {
+  const canDelete = it.clientId === clientId;
+  const h = embedHeight(it.spotifyType);
+  const src = `https://open.spotify.com/embed/${it.spotifyType}/${it.spotifyId}`;
+  return `
+  <div class="song" data-id="${it.id}">
+    <div class="song-head">
+      <span class="avatar" style="background:${colorFor(it.username)}">${initials(it.username)}</span>
+      <span class="song-author">${escapeHtml(it.username)}</span>
+      <span class="song-time">${formatTime(toDate(it.createdAt))}</span>
+      ${canDelete ? `<button class="song-delete" data-id="${it.id}">remove</button>` : ""}
+    </div>
+    <iframe src="${src}" height="${h}" loading="lazy"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            allowfullscreen></iframe>
+  </div>`;
+}
+
+async function submitSong(e) {
+  e.preventDefault();
+  if (!configured) { setMusicHint("Firebase isn't configured (see README.md).", true); return; }
+  const input = $("#music-input");
+  const parsed = parseSpotify(input.value);
+  if (!parsed) {
+    setMusicHint("Hmm, that doesn't look like a Spotify link. Copy it from Share → Copy link.", true);
+    return;
+  }
+  try {
+    await addDoc(collection(db, SONGS), {
+      date: isoDate(selectedDate),
+      username,
+      clientId,
+      spotifyType: parsed.type,
+      spotifyId: parsed.id,
+      createdAt: serverTimestamp(),
+    });
+    input.value = "";
+    setMusicHint("added to today's playlist 🎶", false);
+  } catch (err) {
+    console.error(err);
+    setMusicHint("Failed to share: " + err.message, true);
+  }
+}
+
+async function deleteSong(id) {
+  if (!confirm("Remove this song?")) return;
+  try { await deleteDoc(doc(db, SONGS, id)); }
+  catch (err) { console.error(err); setMusicHint("Failed to remove: " + err.message, true); }
+}
+
+$("#music-form").addEventListener("submit", submitSong);
 
 // ===========================================================
 //  Images — drag & drop / file pick / preview
