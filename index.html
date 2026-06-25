@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Journal Calendar — a diary for us</title>
+  <meta name="description" content="A collaborative diary in the form of a calendar." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;0,900;1,600;1,800&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%237c4dff'/><text x='50' y='74' font-size='62' text-anchor='middle' fill='white' font-family='Georgia,serif' font-style='italic'>j</text></svg>" />
+</head>
+<body>
+  <!-- ===== Username gate ===== -->
+  <div id="username-gate" class="gate hidden">
+    <div class="gate-card">
+      <h1>Journal Calendar</h1>
+      <p class="gate-sub">pick a username to start writing</p>
+      <form id="username-form" autocomplete="off">
+        <input id="username-input" type="text" maxlength="24" placeholder="your username…" required />
+        <button type="submit" class="btn btn-primary">enter</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== App ===== -->
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-title">Journal Calendar</span>
+      </div>
+      <div class="topbar-actions">
+        <button id="theme-btn" class="pill-btn" title="Toggle theme">dark</button>
+        <button id="user-chip" class="user-chip" title="Change username">
+          <span class="avatar" id="user-avatar">?</span>
+          <span id="user-name">…</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- Calendar -->
+      <aside class="calendar-pane">
+        <div class="cal-header">
+          <button id="prev-month" class="icon-btn" title="Previous month">‹</button>
+          <h2 id="cal-title">…</h2>
+          <button id="next-month" class="icon-btn" title="Next month">›</button>
+        </div>
+        <div class="cal-weekdays" id="cal-weekdays"></div>
+        <div class="cal-grid" id="cal-grid"></div>
+
+        <div class="cal-tools">
+          <button id="today-btn" class="btn btn-soft">today</button>
+          <input id="date-search" type="date" class="date-search" title="Search a date" />
+        </div>
+        <div class="day-nav">
+          <button id="prev-day" class="btn btn-soft">‹ day</button>
+          <button id="next-day" class="btn btn-soft">day ›</button>
+        </div>
+      </aside>
+
+      <!-- Journal -->
+      <section class="journal-pane">
+        <div class="journal-header">
+          <h2 id="selected-date-label">…</h2>
+          <span id="today-badge" class="today-badge hidden">today</span>
+        </div>
+
+        <!-- Composer -->
+        <form id="composer" class="composer" autocomplete="off">
+          <textarea id="entry-text" placeholder="Write something for this day…" rows="3"></textarea>
+          <div id="dropzone" class="dropzone">
+            <input id="image-input" type="file" accept="image/*" hidden />
+            <span class="dz-hint">drag an image here or <button type="button" id="pick-image" class="linklike">choose a file</button></span>
+            <div id="image-preview" class="image-preview hidden">
+              <img id="preview-img" alt="preview" />
+              <button type="button" id="remove-image" class="remove-image" title="Remove">✕</button>
+            </div>
+          </div>
+          <div class="composer-actions">
+            <span id="autosave-hint" class="autosave-hint"></span>
+            <button type="submit" id="save-btn" class="btn btn-primary">save</button>
+          </div>
+        </form>
+
+        <!-- Entries -->
+        <div id="entries" class="entries">
+          <div class="empty-state" id="empty-state">
+            <p>no entries for this day yet — be the first to write</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== Banner for config errors ===== -->
+  <div id="config-banner" class="config-banner hidden"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
