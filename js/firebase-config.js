@@ -22,5 +22,3 @@ export const firebaseConfig = {
 // include Storage, set this to false — text entries will still work and
 // small images will be inlined as data URLs in Firestore instead.
 export const useFirebaseStorage = false;
-
-

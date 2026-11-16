@@ -2,13 +2,15 @@
 //  Journal Calendar — app logic (vanilla JS + Firebase)
 // ===========================================================
 
-import { firebaseConfig, useFirebaseStorage } from "./firebase-config.js?v=2";
+// Bump ?v= whenever firebase-config.js gains or loses an export, so a cached
+// copy of it can never be paired with a newer app.js (that breaks the import).
+import { firebaseConfig, useFirebaseStorage } from "./firebase-config.js?v=4";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, query, where,
   onSnapshot, addDoc, deleteDoc, doc, updateDoc, arrayUnion,
-  serverTimestamp,
+  setDoc, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getStorage, ref as storageRef, uploadBytes, getDownloadURL,
@@ -37,6 +39,7 @@ if (!configured) {
 const $ = (sel) => document.querySelector(sel);
 const ENTRIES = "entries";
 const SONGS = "songs";
+const CONNECTIONS = "connections";
 
 function pad(n) { return String(n).padStart(2, "0"); }
 function isoDate(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
@@ -65,7 +68,11 @@ function toDate(ts) {
 
 function formatTime(date) {
   if (!date) return "just now";
-  return date.toLocaleString("en-US", { hour: "2-digit", minute: "2-digit" });
+  // 12-hour clock on a 0–12 scale: midnight reads 00:09 AM rather than the
+  // usual 12:09 AM, while noon stays 12:09 PM.
+  const h = date.getHours();
+  const hour = h === 12 ? 12 : h % 12;
+  return `${pad(hour)}:${pad(date.getMinutes())} ${h < 12 ? "AM" : "PM"}`;
 }
 
 function formatLongDate(d) {
@@ -101,6 +108,7 @@ function showApp() {
   const av = $("#user-avatar");
   av.textContent = initials(username);
   av.style.background = colorFor(username);
+  recordConnection(true);
 }
 
 function showGate() {
@@ -120,6 +128,49 @@ $("#username-form").addEventListener("submit", (e) => {
 });
 
 $("#user-chip").addEventListener("click", showGate);
+
+// ===========================================================
+//  Connections log — Firestore only, nothing is rendered in the UI
+//  -----------------------------------------------------------
+//  One document per username in `connections`, rewritten on every visit, so
+//  the collection always answers "who connects, and when were they last here".
+// ===========================================================
+// Firestore ids can't contain "/" and can't be "." or ".." — derive a safe,
+// stable key from the username so the same person always hits the same doc.
+function connectionId(name) {
+  const key = (name || "").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").slice(0, 64);
+  return key ? `user_${key}` : `client_${clientId}`;
+}
+
+const CONNECTION_THROTTLE_MS = 5 * 60 * 1000;
+let lastConnectionWrite = 0;
+
+// `force` is for a real arrival (boot / username change); background refreshes
+// are throttled so a tab being focused repeatedly doesn't spam writes.
+// setDoc without `merge` keeps the document to exactly these four fields.
+async function recordConnection(force) {
+  if (!configured || !username) return;
+  const startedAt = Date.now();
+  if (!force && startedAt - lastConnectionWrite < CONNECTION_THROTTLE_MS) return;
+  lastConnectionWrite = startedAt;
+
+  try {
+    await setDoc(doc(db, CONNECTIONS, connectionId(username)), {
+      username,
+      clientId,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+      lastConnectionAt: serverTimestamp(),
+    });
+  } catch (err) {
+    // Logging must never break the diary, so just allow the next attempt.
+    console.warn("connection log failed", err);
+    lastConnectionWrite = 0;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") recordConnection(false);
+});
 
 // ===========================================================
 //  Theme (dark / light)

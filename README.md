@@ -19,6 +19,7 @@ Static frontend (HTML / CSS / Vanilla JS) hosted on **GitHub Pages**, with a
 - 🎵 **Music of the day** — paste a Spotify link and everyone can play it on the page
 - Entry of the day highlighted + chronological scroll
 - Persistent real‑time storage (Firestore `onSnapshot`)
+- Connection log in Firestore — who visited and when they were last here
 - Pastel dark mode · search by date · "today" indicator · 💾 draft auto‑save
 
 ---
@@ -72,6 +73,23 @@ Songs are rendered with Spotify's official embed player (an `<iframe>`), so they
 play directly on the page — no Spotify API key or login required. Paste any link
 from Spotify's **Share → Copy link** (track, album, playlist or episode).
 
+Collection **`connections`**, **one document per username** (doc id `user_<username>`),
+rewritten on every visit — so the collection always shows who connects and when they
+were last here. Nothing from it is displayed in the app; it only exists in Firestore:
+
+```json
+{
+  "username": "Andrew",
+  "clientId": "local-uuid",
+  "timeZone": "Europe/Paris",
+  "lastConnectionAt": "<serverTimestamp>"
+}
+```
+
+Written when the app opens, when the username changes, and when the tab comes back
+to the foreground (throttled to once every 5 minutes). Each write replaces the whole
+document, so it never accumulates extra fields.
+
 ---
 
 ## 🔧 1. Firebase setup
@@ -119,9 +137,17 @@ service cloud.firestore {
                     && request.resource.data.spotifyId is string;
       allow update, delete: if true;
     }
+    match /connections/{who} {
+      allow read: if false;
+      allow create, update: if request.resource.data.username is string;
+      allow delete: if false;
+    }
   }
 }
 ```
+
+> The app only ever writes to `connections`, so reads are denied outright — you
+> still see everything in the Firebase console, which bypasses these rules.
 
 ### Storage security rules
 
